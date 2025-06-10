@@ -45,7 +45,23 @@
             </div>
             <div class="summary-item">
               <span class="label">蛋白質：</span>
-              <span class="value">{{ todayRecord.protein }} g</span>
+              <span class="value">
+                {{ todayRecord.protein }} g
+                <span
+                  v-if="
+                    settingsStore.calculateProteinPercentage(
+                      todayRecord.protein
+                    )
+                  "
+                  class="percentage"
+                >
+                  ({{
+                    settingsStore.calculateProteinPercentage(
+                      todayRecord.protein
+                    )
+                  }}%)
+                </span>
+              </span>
             </div>
             <div class="summary-item">
               <span class="label">熱量：</span>
@@ -85,11 +101,13 @@ import WeightList from "./components/WeightList.vue";
 import WeightChart from "./components/WeightChart.vue";
 import SettingsPage from "./components/SettingsPage.vue";
 import { db } from "./services/db";
+import { useSettingsStore } from "./stores/settingsStore";
 
 const isDbInitialized = ref(false);
 const activeTab = ref("form");
 const weightChart = ref<InstanceType<typeof WeightChart> | null>(null);
 const todayRecord = ref<any>(null);
+const settingsStore = useSettingsStore();
 
 const loadTodayRecord = async () => {
   if (isDbInitialized.value) {
@@ -99,7 +117,6 @@ const loadTodayRecord = async () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const records = await db.getAllRecords();
-    // 過濾出今天的記錄，並按時間排序
     const todayRecords = records
       .filter((record) => {
         const recordDate = new Date(record.date);
@@ -107,14 +124,11 @@ const loadTodayRecord = async () => {
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // 獲取最後一筆記錄
     todayRecord.value = todayRecords[0] || null;
-    console.log("今日記錄更新:", todayRecord.value); // 添加日誌
   }
 };
 
 const handleRecordAdded = async () => {
-  console.log("記錄已添加，更新今日摘要"); // 添加日誌
   await loadTodayRecord();
   // 更新列表和圖表
   if (activeTab.value === "list") {
@@ -132,20 +146,11 @@ const handleRefresh = async () => {
   }
 };
 
-// 監聽記錄更新事件
-onMounted(() => {
-  window.addEventListener("refresh-records", loadTodayRecord);
-});
-
-// 在組件卸載時移除事件監聽
-onUnmounted(() => {
-  window.removeEventListener("refresh-records", loadTodayRecord);
-});
-
 onMounted(async () => {
   try {
     await db.init();
     isDbInitialized.value = true;
+    await settingsStore.loadSettings();
     await loadTodayRecord();
   } catch (error) {
     console.error("Failed to initialize database:", error);
@@ -167,6 +172,12 @@ watch(activeTab, async (newTab) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
 header {
@@ -186,6 +197,10 @@ h1 {
   gap: 10px;
   margin-bottom: 20px;
   flex-shrink: 0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .tab-btn {
@@ -217,6 +232,7 @@ main {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 20px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .today-summary {
@@ -260,5 +276,11 @@ main {
   font-style: italic;
   text-align: center;
   padding: 10px;
+}
+
+.percentage {
+  color: #4caf50;
+  font-size: 0.9em;
+  margin-left: 4px;
 }
 </style>
