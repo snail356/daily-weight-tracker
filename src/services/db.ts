@@ -1,8 +1,15 @@
 import { WeightRecord, WeightStats } from "../types/weight";
 
 const DB_NAME = "weight-tracker-db";
-const DB_VERSION = 1;
-const STORE_NAME = "weight-records";
+const DB_VERSION = 2;
+const RECORDS_STORE = "weight-records";
+const SETTINGS_STORE = "settings";
+
+interface Settings {
+  targetWeight: number | null;
+  targetCalories: number | null;
+  targetProtein: number | null;
+}
 
 class DatabaseService {
   private db: IDBDatabase | null = null;
@@ -22,12 +29,20 @@ class DatabaseService {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, {
+        const oldVersion = event.oldVersion;
+
+        if (oldVersion < 1) {
+          const store = db.createObjectStore(RECORDS_STORE, {
             keyPath: "id",
             autoIncrement: true,
           });
           store.createIndex("date", "date", { unique: false });
+        }
+
+        if (oldVersion < 2) {
+          if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            db.createObjectStore(SETTINGS_STORE, { keyPath: "id" });
+          }
         }
       };
     });
@@ -40,8 +55,8 @@ class DatabaseService {
         return;
       }
 
-      const transaction = this.db.transaction([STORE_NAME], "readwrite");
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = this.db.transaction([RECORDS_STORE], "readwrite");
+      const store = transaction.objectStore(RECORDS_STORE);
       const request = store.add(record);
 
       request.onsuccess = (event) => {
@@ -62,8 +77,8 @@ class DatabaseService {
         return;
       }
 
-      const transaction = this.db.transaction([STORE_NAME], "readonly");
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = this.db.transaction([RECORDS_STORE], "readonly");
+      const store = transaction.objectStore(RECORDS_STORE);
       const request = store.getAll();
 
       request.onsuccess = () => {
@@ -83,8 +98,8 @@ class DatabaseService {
         return;
       }
 
-      const transaction = this.db.transaction([STORE_NAME], "readwrite");
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = this.db.transaction([RECORDS_STORE], "readwrite");
+      const store = transaction.objectStore(RECORDS_STORE);
       const request = store.put(record);
 
       request.onsuccess = () => {
@@ -104,8 +119,8 @@ class DatabaseService {
         return;
       }
 
-      const transaction = this.db.transaction([STORE_NAME], "readwrite");
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = this.db.transaction([RECORDS_STORE], "readwrite");
+      const store = transaction.objectStore(RECORDS_STORE);
       const request = store.delete(id);
 
       request.onsuccess = () => {
@@ -144,6 +159,54 @@ class DatabaseService {
       totalChange: weights[weights.length - 1] - weights[0],
       averageWeight: weights.reduce((a, b) => a + b, 0) / weights.length,
     };
+  }
+
+  async saveSettings(settings: Settings): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const transaction = this.db.transaction([SETTINGS_STORE], "readwrite");
+      const store = transaction.objectStore(SETTINGS_STORE);
+      const request = store.put({ id: "user-settings", ...settings });
+
+      request.onsuccess = () => {
+        resolve();
+      };
+
+      request.onerror = () => {
+        reject(new Error("Failed to save settings"));
+      };
+    });
+  }
+
+  async getSettings(): Promise<Settings> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const transaction = this.db.transaction([SETTINGS_STORE], "readonly");
+      const store = transaction.objectStore(SETTINGS_STORE);
+      const request = store.get("user-settings");
+
+      request.onsuccess = () => {
+        resolve(
+          request.result || {
+            targetWeight: null,
+            targetCalories: null,
+            targetProtein: null,
+          }
+        );
+      };
+
+      request.onerror = () => {
+        reject(new Error("Failed to get settings"));
+      };
+    });
   }
 }
 
