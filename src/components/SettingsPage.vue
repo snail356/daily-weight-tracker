@@ -46,41 +46,46 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { db } from "../services/db";
+import { useSettingsStore } from "../stores/settingsStore";
 
-interface Settings {
-  targetWeight: number | null;
-  targetCalories: number | null;
-  targetProtein: number | null;
-}
+const props = defineProps<{
+  isDbInitialized: boolean;
+}>();
 
-const settings = ref<Settings>({
-  targetWeight: null,
-  targetCalories: null,
-  targetProtein: null,
+const settingsStore = useSettingsStore();
+const settings = ref({
+  targetWeight: null as number | null,
+  targetProtein: null as number | null,
+  targetCalories: null as number | null,
 });
 
 const loadSettings = async () => {
-  try {
-    const savedSettings = await db.getSettings();
-    settings.value = savedSettings;
-  } catch (error) {
-    console.error("Failed to load settings:", error);
+  if (props.isDbInitialized) {
+    try {
+      const savedSettings = await db.getSettings();
+      if (savedSettings) {
+        settings.value = savedSettings;
+        await settingsStore.saveSettings(savedSettings);
+      }
+    } catch (error) {
+      window.showToast("載入設定失敗", "error");
+    }
   }
 };
 
 const saveSettings = async () => {
-  try {
-    await db.saveSettings(settings.value);
-    alert("設定已儲存");
-  } catch (error) {
-    console.error("Failed to save settings:", error);
-    alert("儲存設定失敗");
+  if (props.isDbInitialized) {
+    try {
+      await db.saveSettings(settings.value);
+      await settingsStore.saveSettings(settings.value);
+      window.showToast("設定已儲存", "success");
+    } catch (error) {
+      window.showToast("儲存設定失敗", "error");
+    }
   }
 };
 
-onMounted(() => {
-  loadSettings();
-});
+onMounted(loadSettings);
 </script>
 
 <style scoped>

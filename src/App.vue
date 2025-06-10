@@ -91,6 +91,7 @@
         />
       </div>
     </main>
+    <Toast ref="toast" />
   </div>
 </template>
 
@@ -100,6 +101,7 @@ import WeightForm from "./components/WeightForm.vue";
 import WeightList from "./components/WeightList.vue";
 import WeightChart from "./components/WeightChart.vue";
 import SettingsPage from "./components/SettingsPage.vue";
+import Toast from "./components/Toast.vue";
 import { db } from "./services/db";
 import { useSettingsStore } from "./stores/settingsStore";
 
@@ -108,6 +110,23 @@ const activeTab = ref("form");
 const weightChart = ref<InstanceType<typeof WeightChart> | null>(null);
 const todayRecord = ref<any>(null);
 const settingsStore = useSettingsStore();
+const toast = ref<InstanceType<typeof Toast> | null>(null);
+
+// 提供全局的 toast 方法
+const showToast = (
+  message: string,
+  type: "error" | "success" | "info" | "warning" = "info"
+) => {
+  toast.value?.show(message, type);
+};
+
+// 將 toast 方法添加到 window 對象
+declare global {
+  interface Window {
+    showToast: typeof showToast;
+  }
+}
+window.showToast = showToast;
 
 const loadTodayRecord = async () => {
   if (isDbInitialized.value) {
@@ -145,6 +164,18 @@ const handleRefresh = async () => {
     await weightChart.value.loadRecords();
   }
 };
+
+// 監聽設定變化
+watch(
+  () => settingsStore.settings,
+  async () => {
+    if (todayRecord.value) {
+      // 重新計算蛋白質百分比
+      await loadTodayRecord();
+    }
+  },
+  { deep: true }
+);
 
 onMounted(async () => {
   try {
