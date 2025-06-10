@@ -27,14 +27,17 @@
       </div>
       <div class="form-group">
         <label for="calories">熱量 (kcal)</label>
-        <input
-          type="number"
-          id="calories"
-          v-model="calories"
-          step="1"
-          min="0"
-          max="10000"
-        />
+        <div class="input-with-calculator">
+          <input
+            type="number"
+            id="calories"
+            v-model.number="calories"
+            min="0"
+            max="10000"
+            step="1"
+          />
+          <CalorieCalculator @update:calories="updateCalories" />
+        </div>
       </div>
       <div class="form-group">
         <label for="date">日期</label>
@@ -54,9 +57,13 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import { db } from "../services/db";
+import CalorieCalculator from "./CalorieCalculator.vue";
 
 export default defineComponent({
   name: "WeightForm",
+  components: {
+    CalorieCalculator,
+  },
   props: {
     isDbInitialized: {
       type: Boolean,
@@ -71,6 +78,10 @@ export default defineComponent({
     const date = ref(new Date().toISOString().split("T")[0]);
     const note = ref("");
     const isSubmitting = ref(false);
+
+    const updateCalories = (value: number) => {
+      calories.value = value;
+    };
 
     const handleSubmit = async () => {
       if (!props.isDbInitialized) {
@@ -116,6 +127,7 @@ export default defineComponent({
       note,
       isSubmitting,
       handleSubmit,
+      updateCalories,
     };
   },
 });
@@ -165,5 +177,15 @@ button:disabled {
 
 button:hover:not(:disabled) {
   background-color: #45a049;
+}
+
+.input-with-calculator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-calculator input {
+  flex: 1;
 }
 </style>
