@@ -173,7 +173,7 @@ export default defineComponent({
 }
 
 .meal-input input {
-  width: 100%;
+  width: calc(100% - 16px);
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -191,7 +191,7 @@ export default defineComponent({
 }
 
 .apply-btn {
-  width: 100%;
+  width: calc(100% - 16px);
   padding: 10px;
   background: #4caf50;
   color: white;
@@ -200,6 +200,7 @@ export default defineComponent({
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s;
+  margin: 0 8px;
 }
 
 .apply-btn:hover {
