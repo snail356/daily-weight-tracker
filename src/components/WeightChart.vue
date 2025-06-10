@@ -35,7 +35,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch, nextTick } from "vue";
+import {
+  defineComponent,
+  ref,
+  onMounted,
+  watch,
+  nextTick,
+  onBeforeUnmount,
+} from "vue";
 import { Chart, registerables } from "chart.js";
 import { WeightRecord } from "../types/weight";
 import { db } from "../services/db";
@@ -56,12 +63,26 @@ export default defineComponent({
     const records = ref<WeightRecord[]>([]);
     const loading = ref(true);
     const activeChart = ref<"weight" | "protein" | "calories">("weight");
+    let chartUpdateTimeout: number | null = null;
 
-    const handleTabChange = (type: "weight" | "protein" | "calories") => {
+    const destroyChart = () => {
+      if (chart.value) {
+        chart.value.destroy();
+        chart.value = null;
+      }
+    };
+
+    const handleTabChange = async (type: "weight" | "protein" | "calories") => {
+      if (chartUpdateTimeout) {
+        clearTimeout(chartUpdateTimeout);
+      }
+      console.log("handleTabChange", type);
       activeChart.value = type;
-      nextTick(() => {
+      chartUpdateTimeout = window.setTimeout(() => {
+        destroyChart();
         updateChart();
-      });
+        chartUpdateTimeout = null;
+      }, 100);
     };
 
     const loadRecords = async () => {
@@ -71,6 +92,7 @@ export default defineComponent({
         loading.value = true;
         records.value = await db.getAllRecords();
         await nextTick();
+        destroyChart();
         updateChart();
       } catch (error) {
         console.error("Failed to load records:", error);
@@ -86,7 +108,7 @@ export default defineComponent({
       const sortedRecords = [...records.value].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
-
+      console.log("sortedRecords", sortedRecords);
       const labels = sortedRecords.map((record) =>
         new Date(record.date).toLocaleDateString("zh-TW", {
           month: "short",
@@ -128,11 +150,8 @@ export default defineComponent({
           break;
       }
 
-      if (chart.value) {
-        chart.value.destroy();
-      }
-
       const ctx = chartCanvas.value.getContext("2d");
+      console.log("ctx", ctx);
       if (!ctx) return;
 
       chart.value = new Chart(ctx, {
@@ -175,6 +194,10 @@ export default defineComponent({
               grid: {
                 display: true,
               },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45,
+              },
             },
             y: {
               min: min,
@@ -186,6 +209,15 @@ export default defineComponent({
                 display: true,
                 text: unit,
               },
+            },
+          },
+          elements: {
+            line: {
+              tension: 0.4,
+            },
+            point: {
+              radius: 3,
+              hoverRadius: 5,
             },
           },
         },
@@ -207,6 +239,13 @@ export default defineComponent({
       }
     });
 
+    onBeforeUnmount(() => {
+      if (chartUpdateTimeout) {
+        clearTimeout(chartUpdateTimeout);
+      }
+      destroyChart();
+    });
+    handleTabChange("weight");
     return {
       chartCanvas,
       records,
