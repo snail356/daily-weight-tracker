@@ -208,6 +208,40 @@ class DatabaseService {
       };
     });
   }
+
+  async getAllFromIndex(
+    indexName: string,
+    key: IDBValidKey,
+    value: IDBValue
+  ): Promise<WeightRecord[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"));
+        return;
+      }
+
+      const transaction = this.db.transaction([RECORDS_STORE], "readonly");
+      const store = transaction.objectStore(RECORDS_STORE);
+      const request = store.index(indexName).getAll(value);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        reject(new Error("Failed to get records from index"));
+      };
+    });
+  }
 }
 
 export const db = new DatabaseService();
+
+export const getTodayRecord = async () => {
+  const database = await db.init();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const records = await database.getAllFromIndex("date", today);
+  return records[0] || null;
+};
