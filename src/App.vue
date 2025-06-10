@@ -103,11 +103,15 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
   text-align: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 h1 {
@@ -120,6 +124,7 @@ h1 {
   justify-content: center;
   gap: 10px;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -145,5 +150,11 @@ h1 {
   text-align: center;
   color: #666;
   margin-top: 20px;
+}
+
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 </style>
