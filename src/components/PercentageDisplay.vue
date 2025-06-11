@@ -1,9 +1,15 @@
 <template>
   <span
-    v-if="percentage !== null"
-    :class="['percentage', getPercentageClass(percentage)]"
+    :class="[
+      'percentage',
+      {
+        'percentage-normal': isNormal,
+        'percentage-warning': isWarning,
+        'percentage-danger': isDanger,
+      },
+    ]"
   >
-    ({{ percentage }}%)
+    {{ percentage }}%
   </span>
 </template>
 
@@ -48,25 +54,36 @@ const props = withDefaults(defineProps<Props>(), {
   thresholds: () => DEFAULT_THRESHOLDS,
 });
 
-const getPercentageClass = (percentage: number): string => {
-  const isAscending = props.thresholds.direction === "asc";
-
-  if (isAscending) {
-    // 越大越危險的邏輯
-    if (percentage >= props.thresholds.danger) return "percentage-danger";
-    if (percentage >= props.thresholds.warning) return "percentage-warning";
-    if (props.thresholds.good && percentage <= props.thresholds.good)
-      return "percentage-good";
-    return "percentage-normal";
-  } else {
-    // 越小越危險的邏輯
-    if (percentage <= props.thresholds.danger) return "percentage-danger";
-    if (percentage <= props.thresholds.warning) return "percentage-warning";
-    if (props.thresholds.good && percentage >= props.thresholds.good)
-      return "percentage-good";
-    return "percentage-normal";
+const isNormal = computed(() => {
+  if (props.thresholds.direction === "desc") {
+    return (
+      props.percentage >= (props.thresholds.good || props.thresholds.warning)
+    );
   }
-};
+  return (
+    props.percentage <= (props.thresholds.good || props.thresholds.warning)
+  );
+});
+
+const isWarning = computed(() => {
+  if (props.thresholds.direction === "desc") {
+    return (
+      props.percentage < (props.thresholds.good || props.thresholds.warning) &&
+      props.percentage >= props.thresholds.danger
+    );
+  }
+  return (
+    props.percentage > (props.thresholds.good || props.thresholds.warning) &&
+    props.percentage <= props.thresholds.danger
+  );
+});
+
+const isDanger = computed(() => {
+  if (props.thresholds.direction === "desc") {
+    return props.percentage < props.thresholds.danger;
+  }
+  return props.percentage > props.thresholds.danger;
+});
 </script>
 
 <style scoped>
@@ -75,20 +92,16 @@ const getPercentageClass = (percentage: number): string => {
   margin-left: 4px;
 }
 
-.percentage-danger {
-  color: var(--percentage-danger, #f44336);
+.percentage-normal {
+  color: var(--primary-color);
 }
 
 .percentage-warning {
-  color: var(--percentage-warning, #ff9800);
+  color: #ff9800;
 }
 
-.percentage-normal {
-  color: var(--percentage-normal, #4caf50);
-}
-
-.percentage-good {
-  color: var(--percentage-good, #2196f3);
+.percentage-danger {
+  color: #f44336;
 }
 </style>
 
