@@ -14,12 +14,14 @@ interface TodayRecordState {
     updatedAt?: string;
   } | null;
   lastLoadDate: string;
+  isEditing: boolean;
 }
 
 export const useTodayRecordStore = defineStore("todayRecord", () => {
   const state = reactive<TodayRecordState>({
     todayRecord: null,
     lastLoadDate: "",
+    isEditing: false,
   });
 
   const isToday = () => {
@@ -53,9 +55,14 @@ export const useTodayRecordStore = defineStore("todayRecord", () => {
     state.lastLoadDate = new Date().toISOString().split("T")[0];
   };
 
+  const setEditing = (value: boolean) => {
+    state.isEditing = value;
+  };
+
   return {
     state,
     loadTodayRecord,
     updateTodayRecord,
+    setEditing,
   };
 });

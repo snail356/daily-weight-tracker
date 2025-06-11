@@ -36,7 +36,7 @@
           @refresh="handleRefresh"
         />
         <WeightChart
-          v-if="activeTab === 'chart'"
+          v-show="activeTab === 'chart'"
           :is-db-initialized="isDbInitialized"
           ref="weightChart"
         />
@@ -90,6 +90,8 @@ window.showToast = showToast;
 
 const handleRecordAdded = async () => {
   await todayRecordStore.loadTodayRecord();
+  // 重置編輯狀態
+  todayRecordStore.setEditing(false);
   // 更新列表和圖表
   if (activeTab.value === "list") {
     const event = new CustomEvent("refresh-records");

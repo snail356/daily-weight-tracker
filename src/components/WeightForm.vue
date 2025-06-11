@@ -129,6 +129,7 @@ const handleSubmit = async () => {
     emit("error", error);
   } finally {
     isSubmitting.value = false;
+    todayRecordStore.setEditing(false);
   }
 };
 

@@ -1,7 +1,7 @@
 <template>
   <div
     class="today-summary bg-light rounded-lg p-4 mb-5 shadow-sm"
-    :class="{ 'is-editing': isEditing }"
+    :class="{ 'is-editing': todayRecordStore.state.isEditing }"
     @click="handleClick"
   >
     <h3 class="title mb-4 text-primary">今日摘要</h3>
@@ -54,6 +54,7 @@
 import { ref } from "vue";
 import { useSettingsStore } from "../stores/settingsStore";
 import PercentageDisplay from "./PercentageDisplay.vue";
+import { useTodayRecordStore } from "../stores/todayRecordStore";
 
 const props = defineProps<{
   record: {
@@ -80,11 +81,11 @@ const emit = defineEmits<{
 }>();
 
 const settingsStore = useSettingsStore();
-const isEditing = ref(false);
+const todayRecordStore = useTodayRecordStore();
 
 const handleClick = () => {
-  isEditing.value = !isEditing.value;
-  if (isEditing.value) {
+  todayRecordStore.setEditing(!todayRecordStore.state.isEditing);
+  if (todayRecordStore.state.isEditing) {
     emit("click", {
       weight: props.record.weight,
       protein: props.record.protein,
