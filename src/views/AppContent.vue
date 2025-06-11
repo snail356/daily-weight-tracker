@@ -22,6 +22,7 @@
           v-if="activeTab === 'form'"
           :record="todayRecordStore.state.todayRecord"
           @click="handleTodaySummaryClick"
+          @deselect="handleTodaySummaryDeselect"
         />
         <WeightForm
           v-if="activeTab === 'form'"
@@ -105,10 +106,18 @@ const handleRefresh = async () => {
   }
 };
 
-const handleTodaySummaryClick = () => {
-  if (todayRecordStore.state.todayRecord) {
-    weightFormRef.value?.setData(todayRecordStore.state.todayRecord);
-  }
+const handleTodaySummaryClick = (data: {
+  weight: number;
+  protein: number;
+  calories: number;
+  date: string;
+  note?: string;
+}) => {
+  weightFormRef.value?.setData(data);
+};
+
+const handleTodaySummaryDeselect = () => {
+  weightFormRef.value?.resetForm();
 };
 
 onMounted(async () => {

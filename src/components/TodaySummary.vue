@@ -60,11 +60,23 @@ const props = defineProps<{
     weight: number;
     protein: number;
     calories: number;
+    date: string;
+    note?: string;
   } | null;
 }>();
 
 const emit = defineEmits<{
-  (e: "click"): void;
+  (
+    e: "click",
+    data: {
+      weight: number;
+      protein: number;
+      calories: number;
+      date: string;
+      note?: string;
+    }
+  ): void;
+  (e: "deselect"): void;
 }>();
 
 const settingsStore = useSettingsStore();
@@ -72,16 +84,18 @@ const isEditing = ref(false);
 
 const handleClick = () => {
   isEditing.value = !isEditing.value;
-  emit("click");
+  if (isEditing.value) {
+    emit("click", {
+      weight: props.record.weight,
+      protein: props.record.protein,
+      calories: props.record.calories,
+      date: props.record.date,
+      note: props.record.note,
+    });
+  } else {
+    emit("deselect");
+  }
 };
-
-const setEditing = (value: boolean) => {
-  isEditing.value = value;
-};
-
-defineExpose({
-  setEditing,
-});
 </script>
 
 <style scoped>

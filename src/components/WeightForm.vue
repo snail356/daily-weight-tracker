@@ -147,6 +147,10 @@ const setData = (data: {
   date: string;
   note?: string;
 }) => {
+  // 先重置表單
+  resetForm();
+
+  // 設置新數據
   weight.value = data.weight.toString();
   protein.value = data.protein.toString();
   calories.value = data.calories.toString();
@@ -160,6 +164,7 @@ const updateCalories = (value: number) => {
 
 defineExpose({
   setData,
+  resetForm,
 });
 </script>
 
