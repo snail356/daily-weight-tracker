@@ -54,82 +54,112 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from "vue";
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { useTodayRecordStore } from "../stores/todayRecordStore";
 import { db } from "../services/db";
 import CalorieCalculator from "./CalorieCalculator.vue";
 
-export default defineComponent({
-  name: "WeightForm",
-  components: {
-    CalorieCalculator,
-  },
-  props: {
-    isDbInitialized: {
-      type: Boolean,
-      required: true,
-    },
-  },
-  emits: ["record-added"],
-  setup(props, { emit }) {
-    const weight = ref("");
-    const protein = ref("");
-    const calories = ref("");
-    const date = ref(new Date().toISOString().split("T")[0]);
-    const note = ref("");
-    const isSubmitting = ref(false);
+const props = defineProps<{
+  showCalorieCalculator?: boolean;
+}>();
 
-    const updateCalories = (value: number) => {
-      calories.value = value;
+const emit = defineEmits<{
+  (e: "record-added"): void;
+  (e: "success"): void;
+  (e: "error", error: any): void;
+}>();
+
+const todayRecordStore = useTodayRecordStore();
+
+const weight = ref("");
+const protein = ref("");
+const calories = ref("");
+const note = ref("");
+const date = ref(new Date().toISOString().split("T")[0]);
+const isSubmitting = ref(false);
+
+const isValid = computed(() => {
+  return weight.value !== "" && !isNaN(parseFloat(weight.value));
+});
+
+const handleSubmit = async () => {
+  if (!isValid.value) return;
+
+  try {
+    isSubmitting.value = true;
+    const now = new Date().toISOString();
+    const record = {
+      weight: parseFloat(weight.value),
+      protein: protein.value ? parseFloat(protein.value) : undefined,
+      calories: calories.value ? parseInt(calories.value) : undefined,
+      date: date.value,
+      note: note.value,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    const handleSubmit = async () => {
-      if (!props.isDbInitialized) {
-        alert("數據庫尚未初始化，請稍候...");
-        return;
-      }
+    let updatedRecord;
+    if (todayRecordStore.state.todayRecord?.id) {
+      // 如果是今天的記錄，使用相同的 ID 更新
+      updatedRecord = {
+        ...record,
+        id: todayRecordStore.state.todayRecord.id,
+        createdAt: todayRecordStore.state.todayRecord.createdAt || now,
+      };
+      await db.updateRecord(updatedRecord);
+      window.showToast("記錄已更新", "success");
+    } else {
+      // 如果是新記錄，創建新的
+      updatedRecord = await db.addRecord(record);
+      window.showToast("記錄已新增", "success");
+    }
 
-      try {
-        isSubmitting.value = true;
-        const now = new Date().toISOString();
-        const record = {
-          weight: parseFloat(weight.value),
-          protein: protein.value ? parseFloat(protein.value) : undefined,
-          calories: calories.value ? parseInt(calories.value) : undefined,
-          date: date.value,
-          note: note.value,
-          createdAt: now,
-          updatedAt: now,
-        };
+    // 更新 store 中的今日資料
+    todayRecordStore.updateTodayRecord(updatedRecord);
 
-        await db.addRecord(record);
-        emit("record-added");
+    // 重置表單
+    resetForm();
 
-        // Reset form
-        weight.value = "";
-        protein.value = "";
-        calories.value = "";
-        note.value = "";
-        date.value = new Date().toISOString().split("T")[0];
-      } catch (error) {
-        console.error("Failed to save record:", error);
-        alert("儲存失敗，請重試");
-      } finally {
-        isSubmitting.value = false;
-      }
-    };
+    // 觸發成功事件
+    emit("success");
+  } catch (error) {
+    console.error("Error saving record:", error);
+    window.showToast("儲存失敗，請重試", "error");
+    emit("error", error);
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 
-    return {
-      weight,
-      protein,
-      calories,
-      date,
-      note,
-      isSubmitting,
-      handleSubmit,
-      updateCalories,
-    };
-  },
+const resetForm = () => {
+  weight.value = "";
+  protein.value = "";
+  calories.value = "";
+  note.value = "";
+  date.value = new Date().toISOString().split("T")[0];
+};
+
+const setData = (data: {
+  weight: number;
+  protein: number;
+  calories: number;
+  date: string;
+  note?: string;
+}) => {
+  weight.value = data.weight.toString();
+  protein.value = data.protein.toString();
+  calories.value = data.calories.toString();
+  date.value = data.date;
+  note.value = data.note || "";
+};
+
+const updateCalories = (value: number) => {
+  calories.value = value;
+};
+
+defineExpose({
+  setData,
 });
 </script>
 

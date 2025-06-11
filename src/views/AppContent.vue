@@ -13,17 +13,21 @@
         { id: 'settings', label: '設定' },
       ]"
     />
-
     <main class="main">
       <div v-if="!isDbInitialized" class="loading text-center p-5">
         <p class="text-secondary">正在初始化資料庫...</p>
       </div>
       <div v-else>
-        <TodaySummary v-if="activeTab === 'form'" :record="todayRecord" />
+        <TodaySummary
+          v-if="activeTab === 'form'"
+          :record="todayRecordStore.state.todayRecord"
+          @click="handleTodaySummaryClick"
+        />
         <WeightForm
           v-if="activeTab === 'form'"
           :is-db-initialized="isDbInitialized"
           @record-added="handleRecordAdded"
+          ref="weightFormRef"
         />
         <WeightList
           v-if="activeTab === 'list'"
@@ -46,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import WeightForm from "../components/WeightForm.vue";
 import WeightList from "../components/WeightList.vue";
 import WeightChart from "../components/WeightChart.vue";
@@ -57,13 +61,15 @@ import TabBar from "../components/TabBar.vue";
 import TodaySummary from "../components/TodaySummary.vue";
 import { db } from "../services/db";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useTodayRecordStore } from "../stores/todayRecordStore";
 
 const isDbInitialized = ref(false);
 const activeTab = ref("form");
 const weightChart = ref<InstanceType<typeof WeightChart> | null>(null);
-const todayRecord = ref<any>(null);
 const settingsStore = useSettingsStore();
+const todayRecordStore = useTodayRecordStore();
 const toast = ref<InstanceType<typeof Toast> | null>(null);
+const weightFormRef = ref<InstanceType<typeof WeightForm> | null>(null);
 
 // 提供全局的 toast 方法
 const showToast = (
@@ -81,27 +87,8 @@ declare global {
 }
 window.showToast = showToast;
 
-const loadTodayRecord = async () => {
-  if (isDbInitialized.value) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const records = await db.getAllRecords();
-    const todayRecords = records
-      .filter((record) => {
-        const recordDate = new Date(record.date);
-        return recordDate >= today && recordDate < tomorrow;
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    todayRecord.value = todayRecords[0] || null;
-  }
-};
-
 const handleRecordAdded = async () => {
-  await loadTodayRecord();
+  await todayRecordStore.loadTodayRecord();
   // 更新列表和圖表
   if (activeTab.value === "list") {
     const event = new CustomEvent("refresh-records");
@@ -112,38 +99,43 @@ const handleRecordAdded = async () => {
 };
 
 const handleRefresh = async () => {
-  await loadTodayRecord();
+  await todayRecordStore.loadTodayRecord();
   if (activeTab.value === "chart" && weightChart.value) {
     await weightChart.value.loadRecords();
   }
 };
 
-// 監聽設定變化
-watch(
-  () => settingsStore.settings,
-  async () => {
-    if (todayRecord.value) {
-      // 重新計算蛋白質百分比
-      await loadTodayRecord();
-    }
-  },
-  { deep: true }
-);
+const handleTodaySummaryClick = () => {
+  if (todayRecordStore.state.todayRecord) {
+    weightFormRef.value?.setData(todayRecordStore.state.todayRecord);
+  }
+};
 
 onMounted(async () => {
   try {
     await db.init();
     isDbInitialized.value = true;
     await settingsStore.loadSettings();
-    await loadTodayRecord();
+    await todayRecordStore.loadTodayRecord();
   } catch (error) {
     console.error("Failed to initialize database:", error);
   }
 });
 
+// 監聽設定變化
+watch(
+  () => settingsStore.settings,
+  async () => {
+    if (todayRecordStore.todayRecord) {
+      await todayRecordStore.loadTodayRecord();
+    }
+  },
+  { deep: true }
+);
+
 watch(activeTab, async (newTab) => {
   if (newTab === "form") {
-    await loadTodayRecord();
+    await todayRecordStore.loadTodayRecord();
   }
 });
 </script>

@@ -1,5 +1,9 @@
 <template>
-  <div class="today-summary bg-light rounded-lg p-4 mb-5 shadow-sm">
+  <div
+    class="today-summary bg-light rounded-lg p-4 mb-5 shadow-sm"
+    :class="{ 'is-editing': isEditing }"
+    @click="handleClick"
+  >
     <h3 class="title mb-4 text-primary">今日摘要</h3>
     <div v-if="record" class="summary-content">
       <div class="summary-item flex items-center gap-2">
@@ -47,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import { useSettingsStore } from "../stores/settingsStore";
 import PercentageDisplay from "./PercentageDisplay.vue";
 
@@ -58,12 +63,37 @@ const props = defineProps<{
   } | null;
 }>();
 
+const emit = defineEmits<{
+  (e: "click"): void;
+}>();
+
 const settingsStore = useSettingsStore();
+const isEditing = ref(false);
+
+const handleClick = () => {
+  isEditing.value = !isEditing.value;
+  emit("click");
+};
+
+const setEditing = (value: boolean) => {
+  isEditing.value = value;
+};
+
+defineExpose({
+  setEditing,
+});
 </script>
 
 <style scoped>
 .today-summary {
   margin-bottom: var(--spacing-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.today-summary.is-editing {
+  border: 2px solid var(--primary-color);
+  background: var(--bg-hover);
 }
 
 .title {
