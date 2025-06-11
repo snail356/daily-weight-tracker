@@ -19,60 +19,7 @@
         <p class="text-secondary">正在初始化資料庫...</p>
       </div>
       <div v-else>
-        <div
-          v-if="activeTab === 'form'"
-          class="today-summary bg-light rounded-lg p-4 mb-5 shadow-sm"
-        >
-          <h3 class="title mb-4">今日摘要</h3>
-          <div v-if="todayRecord" class="summary-content">
-            <div class="summary-item flex items-center gap-2">
-              <span class="label text-secondary">體重：</span>
-              <span class="value text-primary"
-                >{{ todayRecord.weight }} kg</span
-              >
-            </div>
-            <div class="summary-item flex items-center gap-2">
-              <div class="summary-label text-secondary">蛋白質</div>
-              <div class="summary-value text-primary">
-                {{ todayRecord.protein }}g
-                <PercentageDisplay
-                  :percentage="
-                    settingsStore.calculateProteinPercentage(
-                      todayRecord.protein
-                    )
-                  "
-                  :thresholds="{
-                    danger: 60,
-                    warning: 80,
-                    good: 90,
-                    direction: 'desc',
-                  }"
-                />
-              </div>
-            </div>
-            <div class="summary-item flex items-center gap-2">
-              <div class="summary-label text-secondary">熱量</div>
-              <div class="summary-value text-primary">
-                {{ todayRecord.calories }}kcal
-                <PercentageDisplay
-                  :percentage="
-                    settingsStore.calculateCaloriesPercentage(
-                      todayRecord.calories
-                    )
-                  "
-                  :thresholds="{
-                    danger: 100,
-                    warning: 90,
-                    direction: 'asc',
-                  }"
-                />
-              </div>
-            </div>
-          </div>
-          <div v-else class="no-record text-secondary text-center p-4">
-            今日尚未記錄
-          </div>
-        </div>
+        <TodaySummary v-if="activeTab === 'form'" :record="todayRecord" />
         <WeightForm
           v-if="activeTab === 'form'"
           :is-db-initialized="isDbInitialized"
@@ -107,6 +54,7 @@ import SettingsPage from "../components/SettingsPage.vue";
 import Toast from "../components/Toast.vue";
 import PercentageDisplay from "../components/PercentageDisplay.vue";
 import TabBar from "../components/TabBar.vue";
+import TodaySummary from "../components/TodaySummary.vue";
 import { db } from "../services/db";
 import { useSettingsStore } from "../stores/settingsStore";
 
