@@ -156,15 +156,9 @@ watch(activeTab, async (newTab) => {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--p-5);
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
 }
 
 .header {
@@ -184,7 +178,6 @@ watch(activeTab, async (newTab) => {
   padding-bottom: var(--p-5);
   -webkit-overflow-scrolling: touch;
   position: relative;
-  height: 100%;
 }
 
 .summary-content {

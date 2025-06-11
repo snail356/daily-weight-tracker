@@ -46,15 +46,20 @@
         <label for="note">備註</label>
         <textarea id="note" v-model="note" rows="3"></textarea>
       </div>
-      <button type="submit" :disabled="isSubmitting">
+      <!-- 桌面版按鈕 -->
+      <button type="submit" :disabled="isSubmitting" class="normal-submit-btn">
         {{ isSubmitting ? "儲存中..." : "儲存" }}
+      </button>
+      <!-- 手機版固定按鈕 -->
+      <button type="submit" :disabled="isSubmitting" class="fixed-submit-btn">
+        {{ isSubmitting ? "..." : "儲存" }}
       </button>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useTodayRecordStore } from "../stores/todayRecordStore";
 import { db } from "../services/db";
 import CalorieCalculator from "./CalorieCalculator.vue";
@@ -77,6 +82,21 @@ const calories = ref("");
 const note = ref("");
 const date = ref(new Date().toISOString().split("T")[0]);
 const isSubmitting = ref(false);
+
+const isMobile = ref(false);
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
+onMounted(() => {
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkMobile);
+});
 
 const isValid = computed(() => {
   return weight.value !== "" && !isNaN(parseFloat(weight.value));
@@ -173,6 +193,7 @@ defineExpose({
   max-width: 500px;
   margin: 0 auto;
   padding: 20px;
+  padding-bottom: 80px; /* 為固定按鈕留出空間 */
 }
 
 .form-group {
@@ -211,6 +232,69 @@ button:disabled {
 }
 
 button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+/* 新增固定按鈕樣式 */
+.fixed-submit-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+  left: auto;
+  max-width: none;
+}
+
+/* 手機版按鈕樣式 */
+@media (max-width: 768px) {
+  .fixed-submit-btn {
+    width: 70px;
+    height: 70px;
+    bottom: 30px;
+    right: 30px;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .normal-submit-btn {
+    display: none;
+  }
+}
+
+/* 桌面版按鈕樣式 */
+@media (min-width: 769px) {
+  .fixed-submit-btn {
+    display: none;
+  }
+
+  .normal-submit-btn {
+    display: block;
+  }
+}
+
+.fixed-submit-btn:disabled,
+.normal-submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.fixed-submit-btn:hover:not(:disabled) {
+  background-color: #45a049;
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.normal-submit-btn:hover:not(:disabled) {
   background-color: #45a049;
 }
 
