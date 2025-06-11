@@ -44,28 +44,41 @@
               <span class="value">{{ todayRecord.weight }} kg</span>
             </div>
             <div class="summary-item">
-              <span class="label">蛋白質：</span>
-              <span class="value">
-                {{ todayRecord.protein }} g
-                <span
-                  v-if="
+              <div class="summary-label">蛋白質</div>
+              <div class="summary-value">
+                {{ todayRecord.protein }}g
+                <PercentageDisplay
+                  :percentage="
                     settingsStore.calculateProteinPercentage(
                       todayRecord.protein
                     )
                   "
-                  class="percentage"
-                >
-                  ({{
-                    settingsStore.calculateProteinPercentage(
-                      todayRecord.protein
-                    )
-                  }}%)
-                </span>
-              </span>
+                  :thresholds="{
+                    danger: 60,
+                    warning: 80,
+                    good: 90,
+                    direction: 'desc',
+                  }"
+                />
+              </div>
             </div>
             <div class="summary-item">
-              <span class="label">熱量：</span>
-              <span class="value">{{ todayRecord.calories }} kcal</span>
+              <div class="summary-label">熱量</div>
+              <div class="summary-value">
+                {{ todayRecord.calories }}kcal
+                <PercentageDisplay
+                  :percentage="
+                    settingsStore.calculateCaloriesPercentage(
+                      todayRecord.calories
+                    )
+                  "
+                  :thresholds="{
+                    danger: 100,
+                    warning: 90,
+                    direction: 'asc',
+                  }"
+                />
+              </div>
             </div>
           </div>
           <div v-else class="no-record">今日尚未記錄</div>
@@ -102,6 +115,7 @@ import WeightList from "./components/WeightList.vue";
 import WeightChart from "./components/WeightChart.vue";
 import SettingsPage from "./components/SettingsPage.vue";
 import Toast from "./components/Toast.vue";
+import PercentageDisplay from "./components/PercentageDisplay.vue";
 import { db } from "./services/db";
 import { useSettingsStore } from "./stores/settingsStore";
 
@@ -310,8 +324,19 @@ main {
 }
 
 .percentage {
-  color: #4caf50;
   font-size: 0.9em;
   margin-left: 4px;
+}
+
+.percentage-normal {
+  color: #4caf50;
+}
+
+.percentage-warning {
+  color: #ff9800;
+}
+
+.percentage-over {
+  color: #f44336;
 }
 </style>

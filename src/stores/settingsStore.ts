@@ -42,5 +42,10 @@ export const useSettingsStore = defineStore("settings", {
       if (!this.settings.targetProtein) return null;
       return Math.round((protein / this.settings.targetProtein) * 100);
     },
+
+    calculateCaloriesPercentage(calories: number): number | null {
+      if (!this.settings.targetCalories) return null;
+      return Math.round((calories / this.settings.targetCalories) * 100);
+    },
   },
 });
