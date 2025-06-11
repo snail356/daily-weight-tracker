@@ -1,6 +1,5 @@
 <template>
   <div class="weight-form">
-    <h2>記錄體重</h2>
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
         <label for="weight">體重 (kg)</label>

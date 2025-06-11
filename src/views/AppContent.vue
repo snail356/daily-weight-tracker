@@ -183,6 +183,8 @@ watch(activeTab, async (newTab) => {
   overflow-y: auto;
   padding-bottom: var(--p-5);
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  height: 100%;
 }
 
 .summary-content {
