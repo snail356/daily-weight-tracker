@@ -118,24 +118,31 @@ const handleSubmit = async () => {
       updatedAt: now,
     };
 
+    // 檢查選擇的日期是否已有記錄
+    const existingRecords = await db.getAllRecords();
+    const existingRecord = existingRecords.find((r) => r.date === date.value);
+
     let updatedRecord;
-    if (todayRecordStore.state.todayRecord?.id) {
-      // 如果是今天的記錄，使用相同的 ID 更新
+    if (existingRecord) {
+      // 如果選擇的日期已有記錄，則更新該記錄
       updatedRecord = {
         ...record,
-        id: todayRecordStore.state.todayRecord.id,
-        createdAt: todayRecordStore.state.todayRecord.createdAt || now,
+        id: existingRecord.id,
+        createdAt: existingRecord.createdAt || now,
       };
       await db.updateRecord(updatedRecord);
       window.showToast("記錄已更新", "success");
     } else {
-      // 如果是新記錄，創建新的
+      // 如果是新日期，創建新的記錄
       updatedRecord = await db.addRecord(record);
       window.showToast("記錄已新增", "success");
     }
 
-    // 更新 store 中的今日資料
-    todayRecordStore.updateTodayRecord(updatedRecord);
+    // 如果更新的是今天的記錄，則更新 store 中的今日資料
+    const today = new Date().toISOString().split("T")[0];
+    if (date.value === today) {
+      todayRecordStore.updateTodayRecord(updatedRecord);
+    }
 
     // 重置表單
     resetForm();
