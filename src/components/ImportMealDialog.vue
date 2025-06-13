@@ -98,15 +98,15 @@ const parsedData = computed(() => {
       .filter((line) => line.trim() && !line.includes("---"))
       .map((line) => line.replace(/^\| | \|$/g, "").split(" | "));
 
+    if (lines.length < 2) return null;
+
     // 解析表頭
     const headers = lines[0].map((h) => h.toLowerCase());
-    const data = [];
     let totals = { calories: 0, protein: 0 };
-    let hasTotals = false;
 
     // 檢查是否有總計/小計行
     const totalRow = lines.find((row, index) => {
-      if (index === 0) return false; // 跳過表頭
+      if (index === 0) return false;
       const firstCell = row[0].toLowerCase();
       return (
         firstCell.includes("總計") ||
@@ -131,7 +131,6 @@ const parsedData = computed(() => {
         );
         if (!isNaN(calories)) {
           totals.calories = calories;
-          hasTotals = true;
         }
       }
 
@@ -141,47 +140,39 @@ const parsedData = computed(() => {
         );
         if (!isNaN(protein)) {
           totals.protein = protein;
-          hasTotals = true;
         }
       }
-    }
+    } else {
+      // 如果沒有總計行，計算所有行的總和
+      let totalCalories = 0;
+      let totalProtein = 0;
 
-    // 如果沒有找到總計/小計行，則計算所有行的總和
-    if (!hasTotals) {
-      // 解析數據行
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i];
-        const firstCell = row[0].toLowerCase();
-        if (
-          firstCell.includes("總計") ||
-          firstCell.includes("小計") ||
-          firstCell.includes("total") ||
-          firstCell.includes("subtotal")
-        )
-          continue;
+        if (row.length < 3) continue;
 
-        const meal = {
-          name: row[0].trim(),
-          calories: parseInt(row[1].replace(/[^0-9]/g, "")),
-          protein: parseFloat(row[2].replace(/[^0-9.-]/g, "")),
-        };
-        data.push(meal);
+        const calories = parseInt(row[1].replace(/[^0-9]/g, ""));
+        const protein = parseFloat(row[2].replace(/[^0-9.-]/g, ""));
+
+        if (!isNaN(calories)) totalCalories += calories;
+        if (!isNaN(protein)) totalProtein += protein;
       }
 
-      // 計算總和
-      totals = data.reduce(
-        (acc, meal) => ({
-          calories: acc.calories + (meal.calories || 0),
-          protein: acc.protein + (meal.protein || 0),
-        }),
-        { calories: 0, protein: 0 }
-      );
+      totals = {
+        calories: totalCalories,
+        protein: totalProtein,
+      };
     }
 
-    return {
-      meals: data,
-      totals,
-    };
+    // 只要有任一有效數據就返回
+    if (totals.calories > 0 || totals.protein > 0) {
+      return {
+        meals: [], // 不需要返回 meals
+        totals,
+      };
+    }
+
+    return null;
   } catch (error) {
     console.error("解析表格失敗:", error);
     return null;
@@ -252,9 +243,31 @@ const handlePaste = async () => {
 
 const handleImport = () => {
   if (parsedData.value) {
-    emit("import", parsedData.value);
+    const { totals } = parsedData.value;
+
+    // 檢查是否有有效的總計數據
+    if (!totals.calories && !totals.protein) {
+      window.showToast("沒有有效的數據可以匯入", "error");
+      return;
+    }
+
+    // 發送匯入事件
+    emit("import", {
+      meals: [], // 不需要傳送 meals
+      totals: {
+        calories: totals.calories || 0,
+        protein: totals.protein || 0,
+      },
+    });
+
+    // 關閉對話框並清空數據
     dialogVisible.value = false;
     tableText.value = "";
+
+    // 顯示成功訊息
+    window.showToast("成功匯入餐點數據", "success");
+  } else {
+    window.showToast("請先輸入有效的表格數據", "error");
   }
 };
 </script>

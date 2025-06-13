@@ -174,15 +174,12 @@ const setData = (data: {
   date: string;
   note?: string;
 }) => {
-  // 先重置表單
-  resetForm();
-
-  // 設置新數據
-  weight.value = data.weight.toString();
-  protein.value = data.protein.toString();
-  calories.value = data.calories.toString();
-  date.value = data.date;
-  note.value = data.note || "";
+  // 只更新有值的欄位
+  if (data.weight) weight.value = data.weight.toString();
+  if (data.protein) protein.value = data.protein.toString();
+  if (data.calories) calories.value = data.calories.toString();
+  if (data.date) date.value = data.date;
+  if (data.note !== undefined) note.value = data.note;
 };
 
 const updateCalories = (value: number) => {

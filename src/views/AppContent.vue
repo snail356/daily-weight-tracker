@@ -23,6 +23,7 @@
           :record="todayRecordStore.state.todayRecord"
           @click="handleTodaySummaryClick"
           @deselect="handleTodaySummaryDeselect"
+          @update="handleTodaySummaryUpdate"
         />
         <WeightForm
           v-if="activeTab === 'form'"
@@ -120,6 +121,31 @@ const handleTodaySummaryClick = (data: {
 
 const handleTodaySummaryDeselect = () => {
   weightFormRef.value?.resetForm();
+};
+
+const handleTodaySummaryUpdate = (data: {
+  calories: number;
+  protein: number;
+}) => {
+  if (weightFormRef.value) {
+    // 獲取當前表單數據
+    const currentData = {
+      weight: parseFloat(weightFormRef.value.weight) || 0,
+      protein: parseFloat(weightFormRef.value.protein) || 0,
+      calories: parseFloat(weightFormRef.value.calories) || 0,
+      date: weightFormRef.value.date,
+      note: weightFormRef.value.note || "",
+    };
+
+    // 只更新匯入的數據項目
+    const updatedData = {
+      ...currentData,
+      calories: data.calories,
+      protein: data.protein,
+    };
+
+    weightFormRef.value.setData(updatedData);
+  }
 };
 
 onMounted(async () => {
