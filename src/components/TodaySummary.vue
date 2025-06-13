@@ -4,7 +4,7 @@
     :class="{ 'is-editing': todayRecordStore.state.isEditing }"
   >
     <div class="flex justify-between items-center mb-4">
-      <h3 class="title text-primary">今日摘要</h3>
+      <h3 class="title text-primary" style="margin-right: 20px">今日摘要</h3>
       <button @click="showImportDialog = true" class="btn btn-primary text-sm">
         匯入餐點
       </button>

@@ -1,57 +1,61 @@
 <template>
-  <div v-if="modelValue" class="dialog-overlay">
-    <div class="dialog-content">
-      <div class="dialog-header">
-        <h3 class="text-lg font-medium">匯入餐點資料</h3>
-        <button @click="close" class="close-btn">&times;</button>
-      </div>
-
-      <div class="dialog-body">
-        <div class="mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <label class="block text-sm font-medium"
-              >請貼上 Markdown 格式的表格：</label
-            >
-            <button type="button" class="paste-btn" @click="handlePaste">
-              <i class="fas fa-paste"></i> 貼上
-            </button>
-          </div>
-        </div>
-
-        <div v-if="parsedData" class="preview-section">
-          <h4 class="text-md font-medium mb-2">預覽：</h4>
-          <div class="flex flex-col gap-4">
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="mb-2 font-medium">表格預覽：</div>
-              <div class="markdown-preview" v-html="renderedTable"></div>
-            </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="mb-2">
-                總熱量：{{ parsedData.totals.calories }} kcal
-              </div>
-              <div>總蛋白質：{{ parsedData.totals.protein }}g</div>
-            </div>
-          </div>
+  <BaseDialog
+    v-model="dialogVisible"
+    title="匯入餐點"
+    @update:modelValue="$emit('update:modelValue', $event)"
+  >
+    <div class="import-content">
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-sm font-medium"
+            >請貼上 Markdown 格式的表格：</label
+          >
+          <button type="button" class="paste-btn" @click="handlePaste">
+            <i class="fas fa-paste"></i> 貼上
+          </button>
         </div>
       </div>
 
-      <div class="dialog-footer">
-        <button @click="close" class="btn btn-secondary mr-2">取消</button>
+      <textarea
+        v-model="tableText"
+        class="table-input"
+        placeholder="請貼上餐點表格內容..."
+        rows="10"
+      ></textarea>
+
+      <div v-if="parsedData" class="preview-section">
+        <h4 class="text-md font-medium mb-2">預覽：</h4>
+        <div class="flex flex-col gap-4">
+          <div class="bg-gray-50 p-3 rounded">
+            <div class="mb-2 font-medium">表格預覽：</div>
+            <div class="markdown-preview" v-html="renderedTable"></div>
+          </div>
+          <div class="bg-gray-50 p-3 rounded">
+            <div class="mb-2">
+              總熱量：{{ parsedData.totals.calories }} kcal
+            </div>
+            <div>總蛋白質：{{ parsedData.totals.protein }}g</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
         <button
-          @click="handleImport"
           class="btn btn-primary"
+          @click="handleImport"
           :disabled="!parsedData"
         >
           匯入
         </button>
       </div>
     </div>
-  </div>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { marked } from "marked";
+import BaseDialog from "./BaseDialog.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -65,7 +69,19 @@ const emit = defineEmits<{
   ): void;
 }>();
 
+const dialogVisible = computed({
+  get: () => props.modelValue,
+  set: (value) => emit("update:modelValue", value),
+});
+
 const tableText = ref("");
+
+// 監聽彈窗關閉，清空資料
+watch(dialogVisible, (newValue) => {
+  if (!newValue) {
+    tableText.value = "";
+  }
+});
 
 const renderedTable = computed(() => {
   if (!tableText.value) return "";
@@ -234,94 +250,62 @@ const handlePaste = async () => {
   }
 };
 
-const close = () => {
-  emit("update:modelValue", false);
-  tableText.value = "";
-};
-
 const handleImport = () => {
   if (parsedData.value) {
     emit("import", parsedData.value);
-    close();
+    dialogVisible.value = false;
+    tableText.value = "";
   }
 };
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.dialog-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
+.import-content {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
-.dialog-header {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.table-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  resize: vertical;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: hidden;
 }
 
-.dialog-body {
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.dialog-footer {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+.actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
 }
 
-.close-btn {
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0.25rem;
-  color: #6b7280;
-}
-
-.close-btn:hover {
-  color: #374151;
-}
-
 .btn {
   padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
+  border-radius: 4px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
   background-color: var(--primary-color);
   color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
 }
 
 .preview-section {
@@ -334,10 +318,12 @@ const handleImport = () => {
 .markdown-preview {
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: hidden;
   background-color: #f8fafc;
   padding: 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid #e2e8f0;
+  word-wrap: break-word;
 }
 
 .markdown-preview :deep(table) {
@@ -364,27 +350,6 @@ const handleImport = () => {
 
 .markdown-preview :deep(tr:hover) {
   background-color: #f1f5f9;
-}
-
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.gap-4 {
-  gap: 1rem;
-}
-
-.whitespace-pre-wrap {
-  white-space: pre-wrap;
-}
-
-.font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
 }
 
 .paste-btn {
