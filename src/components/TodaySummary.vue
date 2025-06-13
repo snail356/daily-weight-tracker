@@ -2,14 +2,18 @@
   <div
     class="today-summary bg-light rounded-lg p-4 mb-5 shadow-sm"
     :class="{ 'is-editing': todayRecordStore.state.isEditing }"
+    @click="handleClick"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="title text-primary" style="margin-right: 20px">今日摘要</h3>
-      <button @click="showImportDialog = true" class="btn btn-primary text-sm">
+      <button
+        @click.stop="showImportDialog = true"
+        class="btn btn-primary text-sm"
+      >
         匯入餐點
       </button>
     </div>
-    <div v-if="record" class="summary-content" @click="handleClick">
+    <div v-if="record" class="summary-content">
       <div class="summary-item flex items-center gap-2">
         <span class="label text-secondary">體重：</span>
         <span class="value text-primary">{{ record.weight }} kg</span>
@@ -166,38 +170,80 @@ defineExpose({
 .today-summary {
   margin-bottom: var(--spacing-lg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: var(--bg-light);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 1;
+}
+
+.today-summary:hover {
+  background: var(--bg-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  z-index: 2;
 }
 
 .today-summary.is-editing {
-  border: 2px solid var(--primary-color);
+  border-color: var(--primary-color);
   background: var(--bg-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 2;
 }
 
 .title {
   margin: 0;
   font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.today-summary:hover .title {
+  color: var(--primary-color);
 }
 
 .summary-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--spacing-md);
+  transition: opacity 0.3s ease;
+}
+
+.today-summary:hover .summary-content {
+  opacity: 0.9;
 }
 
 .summary-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  transition: transform 0.2s ease;
+}
+
+.today-summary:hover .summary-item {
+  transform: translateX(2px);
 }
 
 .label {
   font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.today-summary:hover .label {
+  color: var(--text-primary);
 }
 
 .value {
   font-size: var(--font-size-md);
   font-weight: 500;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.today-summary:hover .value {
+  color: var(--primary-color);
 }
 
 .btn {
@@ -205,15 +251,33 @@ defineExpose({
   border-radius: 0.375rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
+  transition: all 0.3s ease;
   background-color: var(--primary-color);
   color: white;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.btn-primary:hover {
+.btn:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.no-record {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--spacing-lg);
+  font-style: italic;
+  transition: color 0.3s ease;
+}
+
+.today-summary:hover .no-record {
+  color: var(--text-primary);
 }
 </style>
