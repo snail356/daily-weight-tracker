@@ -8,14 +8,14 @@
 
       <div class="dialog-body">
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-2"
-            >請貼上 Markdown 格式的表格：</label
-          >
-          <textarea
-            v-model="tableText"
-            class="w-full h-48 p-2 border rounded"
-            placeholder="| 餐別 | 熱量 (kcal) | 蛋白質 (g) |&#10;| --- | --- | --- |&#10;| 早餐 | 300 | 10 |"
-          ></textarea>
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-sm font-medium"
+              >請貼上 Markdown 格式的表格：</label
+            >
+            <button type="button" class="paste-btn" @click="handlePaste">
+              <i class="fas fa-paste"></i> 貼上
+            </button>
+          </div>
         </div>
 
         <div v-if="parsedData" class="preview-section">
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { marked } from "marked";
 
 const props = defineProps<{
@@ -83,30 +83,84 @@ const parsedData = computed(() => {
       .map((line) => line.replace(/^\| | \|$/g, "").split(" | "));
 
     // 解析表頭
-    const headers = lines[0];
+    const headers = lines[0].map((h) => h.toLowerCase());
     const data = [];
+    let totals = { calories: 0, protein: 0 };
+    let hasTotals = false;
 
-    // 解析數據行
-    for (let i = 1; i < lines.length; i++) {
-      const row = lines[i];
-      if (row[0].toLowerCase().includes("總計")) continue;
+    // 檢查是否有總計/小計行
+    const totalRow = lines.find((row, index) => {
+      if (index === 0) return false; // 跳過表頭
+      const firstCell = row[0].toLowerCase();
+      return (
+        firstCell.includes("總計") ||
+        firstCell.includes("小計") ||
+        firstCell.includes("total") ||
+        firstCell.includes("subtotal")
+      );
+    });
 
-      const meal = {
-        name: row[0].trim(),
-        calories: parseInt(row[1].replace(/[^0-9]/g, "")),
-        protein: parseFloat(row[2].replace(/[^0-9.-]/g, "")),
-      };
-      data.push(meal);
+    // 如果有總計/小計行，直接使用該行的數據
+    if (totalRow) {
+      const caloriesIndex = headers.findIndex(
+        (h) => h.includes("熱量") || h.includes("calories")
+      );
+      const proteinIndex = headers.findIndex(
+        (h) => h.includes("蛋白質") || h.includes("protein")
+      );
+
+      if (caloriesIndex !== -1) {
+        const calories = parseInt(
+          totalRow[caloriesIndex].replace(/[^0-9]/g, "")
+        );
+        if (!isNaN(calories)) {
+          totals.calories = calories;
+          hasTotals = true;
+        }
+      }
+
+      if (proteinIndex !== -1) {
+        const protein = parseFloat(
+          totalRow[proteinIndex].replace(/[^0-9.-]/g, "")
+        );
+        if (!isNaN(protein)) {
+          totals.protein = protein;
+          hasTotals = true;
+        }
+      }
     }
 
-    // 計算總和
-    const totals = data.reduce(
-      (acc, meal) => ({
-        calories: acc.calories + meal.calories,
-        protein: acc.protein + meal.protein,
-      }),
-      { calories: 0, protein: 0 }
-    );
+    // 如果沒有找到總計/小計行，則計算所有行的總和
+    if (!hasTotals) {
+      // 解析數據行
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i];
+        const firstCell = row[0].toLowerCase();
+        if (
+          firstCell.includes("總計") ||
+          firstCell.includes("小計") ||
+          firstCell.includes("total") ||
+          firstCell.includes("subtotal")
+        )
+          continue;
+
+        const meal = {
+          name: row[0].trim(),
+          calories: parseInt(row[1].replace(/[^0-9]/g, "")),
+          protein: parseFloat(row[2].replace(/[^0-9.-]/g, "")),
+        };
+        data.push(meal);
+      }
+
+      // 計算總和
+      totals = data.reduce(
+        (acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+        }),
+        { calories: 0, protein: 0 }
+      );
+    }
 
     return {
       meals: data,
@@ -117,6 +171,68 @@ const parsedData = computed(() => {
     return null;
   }
 });
+
+const handlePaste = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) {
+      window.showToast("剪貼簿為空", "error");
+      return;
+    }
+
+    // 檢查是否為 Markdown 表格格式
+    const lines = text.split("\n").filter((line) => line.trim());
+    if (lines.length < 3) {
+      window.showToast(
+        "剪貼簿內容不是有效的 Markdown 表格格式（至少需要表頭、分隔行和一行數據）",
+        "error"
+      );
+      return;
+    }
+
+    const isMarkdownTable = lines.every(
+      (line) => line.trim().startsWith("|") && line.trim().endsWith("|")
+    );
+    if (!isMarkdownTable) {
+      window.showToast(
+        "剪貼簿內容不是有效的 Markdown 表格格式（每行必須以 | 開始和結束）",
+        "error"
+      );
+      return;
+    }
+
+    // 檢查表頭是否包含必要的列
+    const headers = lines[0]
+      .replace(/^\| | \|$/g, "")
+      .split(" | ")
+      .map((h) => h.toLowerCase());
+    const hasCalories = headers.some(
+      (h) => h.includes("熱量") || h.includes("calories")
+    );
+    const hasProtein = headers.some(
+      (h) => h.includes("蛋白質") || h.includes("protein")
+    );
+
+    if (!hasCalories && !hasProtein) {
+      window.showToast("表格中未找到熱量或蛋白質數據列", "error");
+      return;
+    }
+
+    // 更新文本並解析
+    tableText.value = text;
+
+    // 如果解析失敗，顯示錯誤
+    if (!parsedData.value) {
+      window.showToast("解析表格數據失敗，請檢查格式是否正確", "error");
+      return;
+    }
+
+    window.showToast("成功讀取表格數據", "success");
+  } catch (error) {
+    console.error("Error reading clipboard:", error);
+    window.showToast("讀取剪貼簿失敗", "error");
+  }
+};
 
 const close = () => {
   emit("update:modelValue", false);
@@ -269,5 +385,25 @@ const handleImport = () => {
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+}
+
+.paste-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #666;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.paste-btn:hover {
+  background-color: #f0f0f0;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 </style>
