@@ -110,6 +110,7 @@ const parsedData = computed(() => {
       const firstCell = row[0].toLowerCase();
       return (
         firstCell.includes("總計") ||
+        firstCell.includes("總合計") ||
         firstCell.includes("小計") ||
         firstCell.includes("total") ||
         firstCell.includes("subtotal")
