@@ -57,13 +57,11 @@ import WeightForm from "../components/WeightForm.vue";
 import WeightList from "../components/WeightList.vue";
 import WeightChart from "../components/WeightChart.vue";
 import SettingsPage from "../components/SettingsPage.vue";
-import Toast from "../components/Toast.vue";
-import PercentageDisplay from "../components/PercentageDisplay.vue";
-import TabBar from "../components/TabBar.vue";
 import TodaySummary from "../components/TodaySummary.vue";
 import { db } from "../services/db";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useTodayRecordStore } from "../stores/todayRecordStore";
+import { Toast, TabBar } from "@/components/Common";
 
 const isDbInitialized = ref(false);
 const activeTab = ref("form");

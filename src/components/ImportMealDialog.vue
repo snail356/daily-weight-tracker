@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { marked } from "marked";
-import BaseDialog from "./BaseDialog.vue";
+import { BaseDialog } from "@/components/Common";
 
 const props = defineProps<{
   modelValue: boolean;
